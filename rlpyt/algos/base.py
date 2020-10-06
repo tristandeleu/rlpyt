@@ -10,6 +10,20 @@ class RlAlgorithm:
     opt_info_fields = ()
     bootstrap_value = False
     update_counter = 0
+    _batch_size = None
+
+    def __init__(self,
+                 optim_cls,
+                 learning_rate,
+                 optim_kwargs=None,
+                 initial_optim_state_dict=None):
+        self.optim_cls = optim_cls
+        self.learning_rate = learning_rate
+        if optim_kwargs is None:
+            optim_kwargs = dict()
+        self.optim_kwargs = optim_kwargs
+        self.initial_optim_state_dict = initial_optim_state_dict
+        self._optimizer = None
 
     def initialize(self, agent, n_itr, batch_spec, mid_batch_reset, examples,
             world_size=1, rank=0):
@@ -62,6 +76,16 @@ class RlAlgorithm:
         """Load an optimizer state dict; should expect the format returned
         from ``optim_state_dict().``"""
         self.optimizer.load_state_dict(state_dict)
+
+    @property
+    def optimizer(self):
+        if self._optimizer is None:
+            raise ValueError('Must call initialize first.')
+        return self._optimizer
+
+    @optimizer.setter
+    def optimizer(self, value):
+        self._optimizer = value
 
     @property
     def batch_size(self):

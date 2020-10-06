@@ -3,7 +3,6 @@ import torch
 from collections import namedtuple
 
 from rlpyt.algos.base import RlAlgorithm
-from rlpyt.utils.quick_args import save__init__args
 from rlpyt.utils.logging import logger
 from rlpyt.replays.non_sequence.frame import (UniformReplayFrameBuffer,
     PrioritizedReplayFrameBuffer, AsyncUniformReplayFrameBuffer,
@@ -37,7 +36,7 @@ class DQN(RlAlgorithm):
             target_update_interval=312,  # 312 * 32 = 1e4 env steps.
             n_step_return=1,
             learning_rate=2.5e-4,
-            OptimCls=torch.optim.Adam,
+            optim_cls=torch.optim.Adam,
             optim_kwargs=None,
             initial_optim_state_dict=None,
             clip_grad_norm=10.,
@@ -67,11 +66,30 @@ class DQN(RlAlgorithm):
         """ 
         if optim_kwargs is None:
             optim_kwargs = dict(eps=0.01 / batch_size)
-        if default_priority is None:
-            default_priority = delta_clip
+        super().__init__(optim_cls,
+                         learning_rate,
+                         optim_kwargs=optim_kwargs,
+                         initial_optim_state_dict=initial_optim_state_dict)
+        self.discount = discount
         self._batch_size = batch_size
-        del batch_size  # Property.
-        save__init__args(locals())
+        self.min_steps_learn = min_steps_learn
+        self.delta_clip = delta_clip
+        self.replay_size = replay_size
+        self.replay_ratio = replay_ratio
+        self.target_update_tau = target_update_tau
+        self.target_update_interval = target_update_interval
+        self.n_step_return = n_step_return
+        self.clip_grad_norm = clip_grad_norm
+        self.eps_steps = eps_steps
+        self.double_dqn = double_dqn
+        self.prioritized_replay = prioritized_replay
+        self.pri_alpha = pri_alpha
+        self.pri_beta_init = pri_beta_init
+        self.pri_beta_final = pri_beta_final
+        self.pri_beta_steps = pri_beta_steps
+        self.default_priority = default_priority
+        self.ReplayBufferCls = ReplayBufferCls
+        self.updates_per_sync = updates_per_sync
         self.update_counter = 0
 
     def initialize(self, agent, n_itr, batch_spec, mid_batch_reset, examples,
@@ -115,7 +133,7 @@ class DQN(RlAlgorithm):
     def optim_initialize(self, rank=0):
         """Called in initilize or by async runner after forking sampler."""
         self.rank = rank
-        self.optimizer = self.OptimCls(self.agent.parameters(),
+        self.optimizer = self.optim_cls(self.agent.parameters(),
             lr=self.learning_rate, **self.optim_kwargs)
         if self.initial_optim_state_dict is not None:
             self.optimizer.load_state_dict(self.initial_optim_state_dict)

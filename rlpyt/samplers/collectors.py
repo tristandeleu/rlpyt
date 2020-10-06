@@ -4,7 +4,6 @@ import numpy as np
 from rlpyt.agents.base import AgentInputs
 from rlpyt.utils.buffer import buffer_from_example, torchify_buffer, numpify_buffer
 from rlpyt.utils.logging import logger
-from rlpyt.utils.quick_args import save__init__args
 
 
 class BaseCollector:
@@ -23,7 +22,16 @@ class BaseCollector:
             global_B=1,
             env_ranks=None,
             ):
-        save__init__args(locals())
+        self.rank = rank
+        self.envs = envs
+        self.samples_np = samples_np
+        self.batch_T = batch_T
+        self.TrajInfoCls = TrajInfoCls
+        self.agent = agent
+        self.sync = sync
+        self.step_buffer_np = step_buffer_np
+        self.global_B = global_B
+        self.env_ranks = env_ranks
 
     def start_envs(self):
         """e.g. calls reset() on every env."""
@@ -64,7 +72,14 @@ class BaseEvalCollector:
             sync=None,
             step_buffer_np=None,
             ):
-        save__init__args(locals())
+        self.rank = rank
+        self.envs = envs
+        self.TrajInfoCls = TrajInfoCls
+        self.traj_infos_queue = traj_infos_queue
+        self.max_T = max_T
+        self.agent = agent
+        self.sync = sync
+        self.step_buffer_np = step_buffer_np
 
     def collect_evaluation(self):
         """Run agent evaluation in environment and return completed trajectory

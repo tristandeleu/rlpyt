@@ -4,7 +4,6 @@ from collections import namedtuple
 
 from rlpyt.algos.dqn.dqn import DQN, SamplesToBuffer
 from rlpyt.agents.base import AgentInputs
-from rlpyt.utils.quick_args import save__init__args
 from rlpyt.utils.logging import logger
 from rlpyt.utils.collections import namedarraytuple
 from rlpyt.replays.sequence.frame import (UniformSequenceReplayFrameBuffer,
@@ -41,7 +40,7 @@ class R2D1(DQN):
             target_update_interval=2500,  # (Steven says 2500 but maybe faster.)
             n_step_return=5,
             learning_rate=1e-4,
-            OptimCls=torch.optim.Adam,
+            optim_cls=torch.optim.Adam,
             optim_kwargs=None,
             initial_optim_state_dict=None,
             clip_grad_norm=80.,  # 80 (Steven).
@@ -80,8 +79,37 @@ class R2D1(DQN):
             default_priority = delta_clip or 1.
         if input_priority_shift is None:
             input_priority_shift = warmup_T // store_rnn_state_interval
-        save__init__args(locals())
-        self._batch_size = (self.batch_T + self.warmup_T) * self.batch_B
+        super().__init__(discount=discount,
+                         batch_size=(batch_T + warmup_T) * batch_B,
+                         min_steps_learn=min_steps_learn,
+                         delta_clip=delta_clip,
+                         replay_size=replay_size,
+                         replay_ratio=replay_ratio,
+                         target_update_interval=target_update_interval,
+                         n_step_return=n_step_return,
+                         learning_rate=learning_rate,
+                         optim_cls=optim_cls,
+                         optim_kwargs=optim_kwargs,
+                         initial_optim_state_dict=initial_optim_state_dict,
+                         clip_grad_norm=clip_grad_norm,
+                         eps_steps=eps_steps,
+                         double_dqn=double_dqn,
+                         prioritized_replay=prioritized_replay,
+                         pri_alpha=pri_alpha,
+                         pri_beta_init=pri_beta_init,
+                         pri_beta_final=pri_beta_final,
+                         pri_beta_steps=pri_beta_steps,
+                         default_priority=default_priority,
+                         ReplayBufferCls=ReplayBufferCls,
+                         updates_per_sync=updates_per_sync)
+        self.batch_B = batch_B
+        self.batch_T = batch_T
+        self.warmup_T = warmup_T
+        self.store_rnn_state_interval = store_rnn_state_interval
+        self.pri_eta = pri_eta
+        self.input_priorities = input_priorities
+        self.input_priority_shift = input_priority_shift
+        self.value_scale_eps = value_scale_eps
 
     def initialize_replay_buffer(self, examples, batch_spec, async_=False):
         """Similar to DQN but uses replay buffers which return sequences, and

@@ -5,7 +5,6 @@ from rlpyt.samplers.collectors import BaseEvalCollector
 from rlpyt.agents.base import AgentInputs
 from rlpyt.utils.buffer import buffer_from_example, torchify_buffer, numpify_buffer
 from rlpyt.utils.logging import logger
-from rlpyt.utils.quick_args import save__init__args
 
 # For sampling, serial sampler can use Cpu collectors.
 
@@ -21,7 +20,13 @@ class SerialEvalCollector(BaseEvalCollector):
             max_T,
             max_trajectories=None,
             ):
-        save__init__args(locals())
+        super().__init__(0,  # rank
+                         envs,
+                         TrajInfoCls,
+                         None,  # traj_infos_queue
+                         max_T,
+                         agent=agent)
+        self.max_trajectories = max_trajectories
 
     def collect_evaluation(self, itr):
         traj_infos = [self.TrajInfoCls() for _ in range(len(self.envs))]

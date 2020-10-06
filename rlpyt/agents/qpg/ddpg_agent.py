@@ -4,7 +4,6 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 # from torch.nn.parallel import DistributedDataParallelCPU as DDPC  # Deprecated
 
 from rlpyt.agents.base import BaseAgent, AgentStep
-from rlpyt.utils.quick_args import save__init__args
 from rlpyt.distributions.gaussian import Gaussian, DistInfo
 from rlpyt.utils.buffer import buffer_to
 from rlpyt.utils.logging import logger
@@ -37,8 +36,14 @@ class DdpgAgent(BaseAgent):
             model_kwargs = dict(hidden_sizes=[400, 300])
         if q_model_kwargs is None:
             q_model_kwargs = dict(hidden_sizes=[400, 300])
-        save__init__args(locals())
-        super().__init__()  # For async setup.
+        super().__init__(ModelCls=ModelCls,
+                         model_kwargs=model_kwargs,
+                         initial_model_state_dict=initial_model_state_dict)
+        self.QModelCls = QModelCls
+        self.q_model_kwargs = q_model_kwargs
+        self.initial_q_model_state_dict = initial_q_model_state_dict
+        self.action_std = action_std
+        self.action_noise_clip = action_noise_clip
 
     def initialize(self, env_spaces, share_memory=False,
             global_B=1, env_ranks=None):

@@ -6,7 +6,6 @@ import torch.distributed
 from rlpyt.runners.minibatch_rl import MinibatchRl, MinibatchRlEval
 from rlpyt.utils.seed import make_seed
 from rlpyt.utils.collections import AttrDict
-from rlpyt.utils.quick_args import save__init__args
 from rlpyt.utils.synchronize import drain_queue, find_port
 
 
@@ -162,7 +161,18 @@ class SyncWorkerMixin:
             backend,
             par,
             ):
-        save__init__args(locals())
+        self.algo = algo
+        self.agent = agent
+        self.sampler = sampler
+        self.n_steps = n_steps
+        self.seed = seed
+        self.affinity = affinity
+        self.log_interval_steps = log_interval_steps
+        self.rank = rank
+        self.world_size = world_size
+        self.port = port
+        self.backend = backend
+        self.par = par
 
     def startup(self):
         torch.distributed.init_process_group(

@@ -2,7 +2,6 @@
 import torch
 
 from rlpyt.algos.qpg.ddpg import DDPG
-from rlpyt.utils.quick_args import save__init__args
 from rlpyt.utils.tensor import valid_mean
 
 
@@ -20,11 +19,14 @@ class TD3(DDPG):
             q_learning_rate=1e-3,
             **kwargs
             ):
-        """Saved input arguments."""
-        super().__init__(**kwargs)
-        self._batch_size = batch_size
-        del batch_size  # Property.
-        save__init__args(locals(), overwrite=True)
+        super().__init__(batch_size=batch_size,
+                         replay_ratio=replay_ratio,
+                         target_update_tau=target_update_tau,
+                         target_update_interval=target_update_interval,
+                         policy_update_interval=policy_update_interval,
+                         q_learning_rate=q_learning_rate,
+                         **kwargs)
+        self.mu_learning_rate = mu_learning_rate
 
     def initialize(self, *args, **kwargs):
         super().initialize(*args, **kwargs)

@@ -6,7 +6,6 @@ from rlpyt.agents.qpg.ddpg_agent import DdpgAgent
 from rlpyt.utils.buffer import buffer_to
 from rlpyt.distributions.gaussian import Gaussian, DistInfo
 from rlpyt.models.utils import update_state_dict
-from rlpyt.utils.quick_args import save__init__args
 from rlpyt.utils.logging import logger
 
 
@@ -23,7 +22,10 @@ class Td3Agent(DdpgAgent):
             ):
         """Saves input arguments."""
         super().__init__(**kwargs)
-        save__init__args(locals())
+        self.pretrain_std = pretrain_std
+        self.target_noise_std = target_noise_std
+        self.target_noise_clip = target_noise_clip
+        self.initial_q2_model_state_dict = initial_q2_model_state_dict
         self.min_itr_learn = 0  # Get from algo.
 
     def initialize(self, env_spaces, share_memory=False,

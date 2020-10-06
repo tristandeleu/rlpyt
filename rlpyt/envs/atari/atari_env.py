@@ -7,7 +7,6 @@ from collections import namedtuple
 
 from rlpyt.envs.base import Env, EnvStep
 from rlpyt.spaces.int_box import IntBox
-from rlpyt.utils.quick_args import save__init__args
 from rlpyt.samplers.collections import TrajInfo
 
 
@@ -75,7 +74,15 @@ class AtariEnv(Env):
                  repeat_action_probability=0.,
                  horizon=27000,
                  ):
-        save__init__args(locals(), underscore=True)
+        self._game = game
+        self._frame_skip = frame_skip
+        self._num_img_obs = num_img_obs
+        self._clip_reward = clip_reward
+        self._episodic_lives = episodic_lives
+        self._fire_on_reset = fire_on_reset
+        self._max_start_noops = max_start_noops
+        self._repeat_action_probability = repeat_action_probability
+        self._horizon = horizon
         # ALE
         game_path = atari_py.get_game_path(game)
         if not os.path.exists(game_path):

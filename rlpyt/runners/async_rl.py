@@ -7,7 +7,6 @@ from collections import deque
 import math
 
 from rlpyt.runners.base import BaseRunner
-from rlpyt.utils.quick_args import save__init__args
 from rlpyt.utils.logging import logger
 from rlpyt.utils.collections import AttrDict
 from rlpyt.utils.seed import set_seed, make_seed
@@ -73,9 +72,13 @@ class AsyncRlBase(BaseRunner):
             seed=None,
             log_interval_steps=1e5,
             ):
-        n_steps = int(n_steps)
-        log_interval_steps = int(log_interval_steps)
-        save__init__args(locals())
+        self.algo = algo
+        self.agent = agent
+        self.sampler = sampler
+        self.n_steps = int(n_steps)
+        self.affinity = affinity
+        self.seed = seed
+        self.log_interval_steps = int(log_interval_steps)
 
     def train(self):
         """
@@ -475,7 +478,15 @@ class AsyncOptWorker:
             ctrl,
             port
             ):
-        save__init__args(locals())
+        self.rank = rank
+        self.world_size = world_size
+        self.algo = algo
+        self.agent = agent
+        self.n_itr = n_itr
+        self.affinity = affinity
+        self.seed = seed
+        self.ctrl = ctrl
+        self.port = port
 
     def optimize(self):
         self.startup()

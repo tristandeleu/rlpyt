@@ -6,7 +6,6 @@ from rlpyt.replays.sequence.n_step import (SequenceNStepReturnBuffer,
 from rlpyt.replays.async_ import AsyncReplayBufferMixin
 from rlpyt.replays.sum_tree import SumTree, AsyncSumTree
 from rlpyt.utils.collections import namedarraytuple
-from rlpyt.utils.quick_args import save__init__args
 from rlpyt.utils.buffer import torchify_buffer, numpify_buffer
 
 SamplesFromReplayPri = namedarraytuple("SamplesFromReplayPri",
@@ -48,8 +47,12 @@ class PrioritizedSequenceReplay:
 
     def __init__(self, alpha=0.6, beta=0.4, default_priority=1, unique=False,
             input_priorities=False, input_priority_shift=0, **kwargs):
-        super().__init__(**kwargs)
-        save__init__args(locals())
+        self.alpha = alpha
+        self.beta = beta
+        self.default_priority = default_priority
+        self.unique = unique
+        self.input_priorities = input_priorities
+        self.input_priority_shift = input_priority_shift
         assert self.batch_T is not None, "Must assign fixed batch_T for prioritized."
         self.init_priority_tree()
 

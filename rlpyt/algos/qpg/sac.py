@@ -4,7 +4,6 @@ import torch
 from collections import namedtuple
 
 from rlpyt.algos.base import RlAlgorithm
-from rlpyt.utils.quick_args import save__init__args
 from rlpyt.utils.logging import logger
 from rlpyt.replays.non_sequence.uniform import (UniformReplayBuffer,
     AsyncUniformReplayBuffer)
@@ -44,7 +43,7 @@ class SAC(RlAlgorithm):
             target_update_interval=1,  # 1000 for hard update, 1 for soft.
             learning_rate=3e-4,
             fixed_alpha=None, # None for adaptive alpha, float for any fixed value
-            OptimCls=torch.optim.Adam,
+            optim_cls=torch.optim.Adam,
             optim_kwargs=None,
             initial_optim_state_dict=None,  # for all of them.
             action_prior="uniform",  # or "gaussian"
@@ -58,13 +57,28 @@ class SAC(RlAlgorithm):
             bootstrap_timelimit=True,
             ReplayBufferCls=None,  # Leave None to select by above options.
             ):
-        """Save input arguments."""
-        if optim_kwargs is None:
-            optim_kwargs = dict()
         assert action_prior in ["uniform", "gaussian"]
+        super().__init__(optim_cls,
+                         learning_rate,
+                         optim_kwargs=optim_kwargs,
+                         initial_optim_state_dict=initial_optim_state_dict)
+        self.discount = discount
         self._batch_size = batch_size
-        del batch_size  # Property.
-        save__init__args(locals())
+        self.min_steps_learn = min_steps_learn
+        self.replay_size = replay_size
+        self.replay_ratio = replay_ratio
+        self.target_update_tau = target_update_tau
+        self.target_update_interval = target_update_interval
+        self.fixed_alpha = fixed_alpha
+        self.action_prior = action_prior
+        self.reward_scale = reward_scale
+        self.target_entropy = target_entropy
+        self.reparameterize = reparameterize
+        self.clip_grad_norm = clip_grad_norm
+        self.n_step_return = n_step_return
+        self.updates_per_sync = updates_per_sync
+        self.bootstrap_timelimit = bootstrap_timelimit
+        self.ReplayBufferCls = ReplayBufferCls
 
     def initialize(self, agent, n_itr, batch_spec, mid_batch_reset, examples,
             world_size=1, rank=0):
@@ -104,16 +118,16 @@ class SAC(RlAlgorithm):
     def optim_initialize(self, rank=0):
         """Called in initilize or by async runner after forking sampler."""
         self.rank = rank
-        self.pi_optimizer = self.OptimCls(self.agent.pi_parameters(),
+        self.pi_optimizer = self.optim_cls(self.agent.pi_parameters(),
             lr=self.learning_rate, **self.optim_kwargs)
-        self.q1_optimizer = self.OptimCls(self.agent.q1_parameters(),
+        self.q1_optimizer = self.optim_cls(self.agent.q1_parameters(),
             lr=self.learning_rate, **self.optim_kwargs)
-        self.q2_optimizer = self.OptimCls(self.agent.q2_parameters(),
+        self.q2_optimizer = self.optim_cls(self.agent.q2_parameters(),
             lr=self.learning_rate, **self.optim_kwargs)
         if self.fixed_alpha is None:
             self._log_alpha = torch.zeros(1, requires_grad=True)
             self._alpha = torch.exp(self._log_alpha.detach())
-            self.alpha_optimizer = self.OptimCls((self._log_alpha,),
+            self.alpha_optimizer = self.optim_cls((self._log_alpha,),
                 lr=self.learning_rate, **self.optim_kwargs)
         else:
             self._log_alpha = torch.tensor([np.log(self.fixed_alpha)])

@@ -4,7 +4,6 @@
 # import ctypes
 import torch
 
-from rlpyt.utils.quick_args import save__init__args
 from rlpyt.utils.logging import logger
 from rlpyt.utils.buffer import np_mp_array
 
@@ -30,8 +29,12 @@ class EpsilonGreedyAgentMixin:
             ):
         """Saves input arguments.  ``eps_final_min`` other than ``None`` will use 
         vector-valued epsilon, log-spaced."""
-        super().__init__(*args, **kwargs)
-        save__init__args(locals())
+        self.eps_init = eps_init
+        self.eps_final = eps_final
+        self.eps_final_min = eps_final_min
+        self.eps_itr_min = eps_itr_min
+        self.eps_itr_max = eps_itr_max
+        self.eps_eval = eps_eval
         self._eps_final_scalar = eps_final  # In case multiple vec_eps calls.
         self._eps_init_scalar = eps_init
         self._eps_itr_min_max = np_mp_array(2, "int")  # Shared memory for CpuSampler

@@ -1,7 +1,4 @@
-
-
 from rlpyt.samplers.collections import BatchSpec, TrajInfo, Samples
-from rlpyt.utils.quick_args import save__init__args
 
 
 class BaseSampler:
@@ -39,10 +36,20 @@ class BaseSampler:
             eval_max_steps=None,  # int if using evaluation.
             eval_max_trajectories=None,  # Optional earlier cutoff.
             ):
-        eval_max_steps = None if eval_max_steps is None else int(eval_max_steps)
-        eval_max_trajectories = (None if eval_max_trajectories is None else
-            int(eval_max_trajectories))
-        save__init__args(locals())
+        self.EnvCls = EnvCls
+        self.env_kwargs = env_kwargs
+        self.batch_T = batch_T
+        self.batch_B = batch_B
+        self.CollectorCls = CollectorCls
+        self.max_decorrelation_steps = max_decorrelation_steps
+        self.TrajInfoCls = TrajInfoCls
+        self.eval_n_envs = eval_n_envs
+        self.eval_CollectorCls = eval_CollectorCls
+        self.eval_env_kwargs = eval_env_kwargs
+        self.eval_max_steps = (None if eval_max_steps is None
+                               else int(eval_max_steps))
+        self.eval_max_trajectories = (None if eval_max_trajectories is None
+                                      else int(eval_max_trajectories))
         self.batch_spec = BatchSpec(batch_T, batch_B)
         self.mid_batch_reset = CollectorCls.mid_batch_reset
 

@@ -21,14 +21,35 @@ class PolicyGradientAlgo(RlAlgorithm):
     bootstrap_value = True  # Tells the sampler it needs Value(State')
     opt_info_fields = tuple(f for f in OptInfo._fields)  # copy
 
-    def initialize(self, agent, n_itr, batch_spec, mid_batch_reset=False,
-            examples=None, world_size=1, rank=0):
+    def __init__(self,
+                 optim_cls,
+                 learning_rate,
+                 optim_kwargs=None,
+                 initial_optim_state_dict=None,
+                 gae_lambda=1.,
+                 normalize_advantages=False):
+        super().__init__(optim_cls,
+                         learning_rate,
+                         optim_kwargs=optim_kwargs,
+                         initial_optim_state_dict=initial_optim_state_dict)
+        self.gae_lambda = gae_lambda
+        self.normalize_advantages = normalize_advantages
+
+    def initialize(self,
+                   agent,
+                   n_itr,
+                   batch_spec,
+                   mid_batch_reset=False,
+                   examples=None,
+                   world_size=1,
+                   rank=0):
         """
         Build the torch optimizer and store other input attributes. Params
         ``batch_spec`` and ``examples`` are unused.
         """
-        self.optimizer = self.OptimCls(agent.parameters(),
-            lr=self.learning_rate, **self.optim_kwargs)
+        self.optimizer = self.optim_cls(agent.parameters(),
+                                        lr=self.learning_rate,
+                                        **self.optim_kwargs)
         if self.initial_optim_state_dict is not None:
             self.optimizer.load_state_dict(self.initial_optim_state_dict)
         self.agent = agent

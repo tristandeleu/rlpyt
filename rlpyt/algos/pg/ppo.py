@@ -4,7 +4,6 @@ import torch
 from rlpyt.algos.pg.base import PolicyGradientAlgo, OptInfo
 from rlpyt.agents.base import AgentInputs, AgentInputsRnn
 from rlpyt.utils.tensor import valid_mean
-from rlpyt.utils.quick_args import save__init__args
 from rlpyt.utils.buffer import buffer_to, buffer_method
 from rlpyt.utils.collections import namedarraytuple
 from rlpyt.utils.misc import iterate_mb_idxs
@@ -21,27 +20,35 @@ class PPO(PolicyGradientAlgo):
     estimation.  Uses clipped likelihood ratios in the policy loss.
     """
 
-    def __init__(
-            self,
-            discount=0.99,
-            learning_rate=0.001,
-            value_loss_coeff=1.,
-            entropy_loss_coeff=0.01,
-            OptimCls=torch.optim.Adam,
-            optim_kwargs=None,
-            clip_grad_norm=1.,
-            initial_optim_state_dict=None,
-            gae_lambda=1,
-            minibatches=4,
-            epochs=4,
-            ratio_clip=0.1,
-            linear_lr_schedule=True,
-            normalize_advantage=False,
-            ):
-        """Saves input settings."""
-        if optim_kwargs is None:
-            optim_kwargs = dict()
-        save__init__args(locals())
+    def __init__(self,
+                 discount=0.99,
+                 learning_rate=0.001,
+                 value_loss_coeff=1.,
+                 entropy_loss_coeff=0.01,
+                 optim_cls=torch.optim.Adam,
+                 optim_kwargs=None,
+                 clip_grad_norm=1.,
+                 initial_optim_state_dict=None,
+                 gae_lambda=1,
+                 minibatches=4,
+                 epochs=4,
+                 ratio_clip=0.1,
+                 linear_lr_schedule=True,
+                 normalize_advantage=False):
+        super().__init__(optim_cls,
+                         learning_rate,
+                         optim_kwargs=optim_kwargs,
+                         initial_optim_state_dict=initial_optim_state_dict,
+                         gae_lambda=gae_lambda,
+                         normalize_advantage=normalize_advantage)
+        self.discount = discount
+        self.value_loss_coeff = value_loss_coeff
+        self.entropy_loss_coeff = entropy_loss_coeff
+        self.clip_grad_norm = clip_grad_norm
+        self.minibatches = minibatches
+        self.epochs = epochs
+        self.ratio_clip = ratio_clip
+        self.linear_lr_schedule = linear_lr_schedule
 
     def initialize(self, *args, **kwargs):
         """

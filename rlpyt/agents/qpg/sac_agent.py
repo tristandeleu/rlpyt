@@ -7,7 +7,6 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 
 from rlpyt.agents.base import BaseAgent, AgentStep
 from rlpyt.models.qpg.mlp import QofMuMlpModel, PiMlpModel
-from rlpyt.utils.quick_args import save__init__args
 from rlpyt.distributions.gaussian import Gaussian, DistInfoStd
 from rlpyt.utils.buffer import buffer_to
 from rlpyt.utils.logging import logger
@@ -43,9 +42,14 @@ class SacAgent(BaseAgent):
             q_model_kwargs = dict(hidden_sizes=[256, 256])
         if v_model_kwargs is None:
             v_model_kwargs = dict(hidden_sizes=[256, 256])
-        super().__init__(ModelCls=ModelCls, model_kwargs=model_kwargs,
-            initial_model_state_dict=initial_model_state_dict)
-        save__init__args(locals())
+        super().__init__(ModelCls=ModelCls,
+                         model_kwargs=model_kwargs,
+                         initial_model_state_dict=initial_model_state_dict)
+        self.QModelCls = QModelCls
+        self.q_model_kwargs = q_model_kwargs
+        self.v_model_kwargs = v_model_kwargs
+        self.action_squash = action_squash
+        self.pretrain_std = pretrain_std
         self.min_itr_learn = 0  # Get from algo.
 
     def initialize(self, env_spaces, share_memory=False,

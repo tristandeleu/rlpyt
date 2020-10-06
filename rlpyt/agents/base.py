@@ -3,7 +3,6 @@ import torch
 from torch.nn.parallel import DistributedDataParallel as DDP
 # from torch.nn.parallel import DistributedDataParallelCPU as DDPC  # Deprecated
 
-from rlpyt.utils.quick_args import save__init__args
 from rlpyt.utils.collections import namedarraytuple
 from rlpyt.utils.synchronize import RWLock
 from rlpyt.utils.logging import logger
@@ -43,7 +42,9 @@ class BaseAgent:
             initial_model_state_dict (optional): Initial model parameter values.
         """
 
-        save__init__args(locals())
+        self.ModelCls = ModelCls
+        self.model_kwargs = model_kwargs
+        self.initial_model_state_dict = initial_model_state_dict
         self.model = None  # type: torch.nn.Module
         self.shared_model = None
         self.distribution = None

@@ -5,7 +5,6 @@ from rlpyt.algos.pg.base import PolicyGradientAlgo, OptInfo
 from rlpyt.agents.base import AgentInputs
 
 from rlpyt.utils.tensor import valid_mean
-from rlpyt.utils.quick_args import save__init__args
 from rlpyt.utils.buffer import buffer_method
 
 
@@ -16,23 +15,27 @@ class A2C(PolicyGradientAlgo):
     computed by generalized advantage estimation.
     """
 
-    def __init__(
-            self,
-            discount=0.99,
-            learning_rate=0.001,
-            value_loss_coeff=0.5,
-            entropy_loss_coeff=0.01,
-            OptimCls=torch.optim.Adam,
-            optim_kwargs=None,
-            clip_grad_norm=1.,
-            initial_optim_state_dict=None,
-            gae_lambda=1,
-            normalize_advantage=False,
-            ):
-        """Saves the input settings."""
-        if optim_kwargs is None:
-            optim_kwargs = dict()
-        save__init__args(locals())
+    def __init__(self,
+                 discount=0.99,
+                 learning_rate=0.001,
+                 value_loss_coeff=0.5,
+                 entropy_loss_coeff=0.01,
+                 optim_cls=torch.optim.Adam,
+                 optim_kwargs=None,
+                 clip_grad_norm=1.,
+                 initial_optim_state_dict=None,
+                 gae_lambda=1,
+                 normalize_advantage=False):
+        super().__init__(optim_cls,
+                         learning_rate,
+                         optim_kwargs=optim_kwargs,
+                         initial_optim_state_dict=initial_optim_state_dict,
+                         gae_lambda=gae_lambda,
+                         normalize_advantage=normalize_advantage)
+        self.discount = discount
+        self.value_loss_coeff = value_loss_coeff
+        self.entropy_loss_coeff = entropy_loss_coeff
+        self.clip_grad_norm = clip_grad_norm
 
     def initialize(self, *args, **kwargs):
         super().initialize(*args, **kwargs)

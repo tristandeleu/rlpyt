@@ -6,7 +6,6 @@ import math
 from collections import deque
 
 from rlpyt.runners.base import BaseRunner
-from rlpyt.utils.quick_args import save__init__args
 from rlpyt.utils.seed import set_seed, make_seed
 from rlpyt.utils.logging import logger
 from rlpyt.utils.prog_bar import ProgBarCounter
@@ -40,10 +39,13 @@ class MinibatchRlBase(BaseRunner):
             affinity=None,
             log_interval_steps=1e5,
             ):
-        n_steps = int(n_steps)
-        log_interval_steps = int(log_interval_steps)
-        affinity = dict() if affinity is None else affinity
-        save__init__args(locals())
+        self.algo = algo
+        self.agent = agent
+        self.sampler = sampler
+        self.n_steps = int(n_steps)
+        self.seed = seed
+        self.affinity = dict() if affinity is None else affinity
+        self.log_interval_steps = int(log_interval_steps)
         self.min_itr_learn = getattr(self.algo, 'min_itr_learn', 0)
 
     def startup(self):

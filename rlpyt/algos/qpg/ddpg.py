@@ -3,7 +3,6 @@ import torch
 from collections import namedtuple
 
 from rlpyt.algos.base import RlAlgorithm
-from rlpyt.utils.quick_args import save__init__args
 from rlpyt.utils.logging import logger
 from rlpyt.replays.non_sequence.uniform import (UniformReplayBuffer,
     AsyncUniformReplayBuffer)
@@ -37,7 +36,7 @@ class DDPG(RlAlgorithm):
             policy_update_interval=1,
             learning_rate=1e-4,
             q_learning_rate=1e-3,
-            OptimCls=torch.optim.Adam,
+            optim_cls=torch.optim.Adam,
             optim_kwargs=None,
             initial_optim_state_dict=None,
             clip_grad_norm=1e8,
@@ -47,12 +46,25 @@ class DDPG(RlAlgorithm):
             bootstrap_timelimit=True,
             ReplayBufferCls=None,
             ):
-        """Saves input arguments."""
-        if optim_kwargs is None:
-            optim_kwargs = dict()
+        super().__init__(optim_cls,
+                         learning_rate,
+                         optim_kwargs=optim_kwargs,
+                         initial_optim_state_dict=initial_optim_state_dict)
+        self.discount = discount
         self._batch_size = batch_size
-        del batch_size  # Property.
-        save__init__args(locals())
+        self.min_steps_learn = min_steps_learn
+        self.replay_size = replay_size
+        self.replay_ratio = replay_ratio
+        self.target_update_tau = target_update_tau
+        self.target_update_interval = target_update_interval
+        self.policy_update_interval = policy_update_interval
+        self.q_learning_rate = q_learning_rate
+        self.clip_grad_norm = clip_grad_norm
+        self.q_target_clip = q_target_clip
+        self.n_step_return = n_step_return
+        self.updates_per_sync = updates_per_sync
+        self.bootstrap_timelimit = bootstrap_timelimit
+        self.ReplayBufferCls = ReplayBufferCls
 
     def initialize(self, agent, n_itr, batch_spec, mid_batch_reset, examples,
             world_size=1, rank=0):
@@ -91,9 +103,9 @@ class DDPG(RlAlgorithm):
     def optim_initialize(self, rank=0):
         """Called in initilize or by async runner after forking sampler."""
         self.rank = rank
-        self.mu_optimizer = self.OptimCls(self.agent.mu_parameters(),
+        self.mu_optimizer = self.optim_cls(self.agent.mu_parameters(),
             lr=self.learning_rate, **self.optim_kwargs)
-        self.q_optimizer = self.OptimCls(self.agent.q_parameters(),
+        self.q_optimizer = self.optim_cls(self.agent.q_parameters(),
             lr=self.q_learning_rate, **self.optim_kwargs)
         if self.initial_optim_state_dict is not None:
             self.q_optimizer.load_state_dict(self.initial_optim_state_dict["q"])
