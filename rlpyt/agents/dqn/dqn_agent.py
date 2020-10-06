@@ -19,6 +19,27 @@ class DqnAgent(EpsilonGreedyAgentMixin, BaseAgent):
     """
     Standard agent for DQN algorithms with epsilon-greedy exploration.  
     """
+    def __init__(self,
+                 ModelCls=None,
+                 model_kwargs=None,
+                 initial_model_state_dict=None,
+                 eps_init=1,
+                 eps_final=0.01,
+                 eps_final_min=None,  # Give < eps_final for vector epsilon.
+                 eps_itr_min=50,  # Algo may overwrite.
+                 eps_itr_max=1000,
+                 eps_eval=0.001):
+        EpsilonGreedyAgentMixin.__init__(self,
+                                         eps_init=eps_init,
+                                         eps_final=eps_final,
+                                         eps_final_min=eps_final_min,
+                                         eps_itr_min=eps_itr_min,
+                                         eps_itr_max=eps_itr_max,
+                                         eps_eval=eps_eval)
+        BaseAgent.__init__(self,
+                           ModelCls=ModelCls,
+                           model_kwargs=model_kwargs,
+                           initial_model_state_dict=initial_model_state_dict)
 
     def __call__(self, observation, prev_action, prev_reward):
         """Returns Q-values for states/observations (with grad)."""

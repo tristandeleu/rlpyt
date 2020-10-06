@@ -16,17 +16,13 @@ class EpsilonGreedyAgentMixin:
     epsilon-greedy distribution.
     """
 
-    def __init__(
-            self,
-            eps_init=1,
-            eps_final=0.01,
-            eps_final_min=None,  # Give < eps_final for vector epsilon.
-            eps_itr_min=50,  # Algo may overwrite.
-            eps_itr_max=1000,
-            eps_eval=0.001,
-            *args,
-            **kwargs
-            ):
+    def __init__(self,
+                 eps_init=1,
+                 eps_final=0.01,
+                 eps_final_min=None,  # Give < eps_final for vector epsilon.
+                 eps_itr_min=50,  # Algo may overwrite.
+                 eps_itr_max=1000,
+                 eps_eval=0.001):
         """Saves input arguments.  ``eps_final_min`` other than ``None`` will use 
         vector-valued epsilon, log-spaced."""
         self.eps_init = eps_init
