@@ -59,27 +59,6 @@ class AsyncRlBase(BaseRunner):
         ``optimizer`` attributes holding the respective hardware allocations.
         Optimizer and sampler parallelization is determined from this.
     """
-
-    _eval = False
-
-    def __init__(
-            self,
-            algo,
-            agent,
-            sampler,
-            n_steps,
-            affinity,
-            seed=None,
-            log_interval_steps=1e5,
-            ):
-        self.algo = algo
-        self.agent = agent
-        self.sampler = sampler
-        self.n_steps = int(n_steps)
-        self.affinity = affinity
-        self.seed = seed
-        self.log_interval_steps = int(log_interval_steps)
-
     def train(self):
         """
         Run the optimizer in a loop.  Check whether enough new samples have

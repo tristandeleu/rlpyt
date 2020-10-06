@@ -26,26 +26,21 @@ class MinibatchRlBase(BaseRunner):
         affinity (dict): Hardware component assignments for sampler and algorithm.
         log_interval_steps (int): Number of environment steps between logging to csv.
     """
-
-    _eval = False
-
-    def __init__(
-            self,
-            algo,
-            agent,
-            sampler,
-            n_steps,
-            seed=None,
-            affinity=None,
-            log_interval_steps=1e5,
-            ):
-        self.algo = algo
-        self.agent = agent
-        self.sampler = sampler
-        self.n_steps = int(n_steps)
-        self.seed = seed
-        self.affinity = dict() if affinity is None else affinity
-        self.log_interval_steps = int(log_interval_steps)
+    def __init__(self,
+                 algo,
+                 agent,
+                 sampler,
+                 n_steps,
+                 seed=None,
+                 affinity=None,
+                 log_interval_steps=1e5):
+        super().__init__(algo,
+                         agent,
+                         sampler,
+                         n_steps,
+                         affinity=affinity,
+                         seed=seed,
+                         log_interval_steps=log_interval_steps)
         self.min_itr_learn = getattr(self.algo, 'min_itr_learn', 0)
 
     def startup(self):
