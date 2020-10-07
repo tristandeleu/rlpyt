@@ -97,7 +97,7 @@ class DecorrelatingStartCollector(BaseCollector):
         one through a random number of random actions, and returns the
         resulting agent_inputs buffer (`observation`, `prev_action`,
         `prev_reward`)."""
-        traj_infos = [self.TrajInfoCls() for _ in range(len(self.envs))]
+        traj_infos = [self.TrajInfoCls() for _ in self.envs]
         observations = list()
         for env in self.envs:
             observations.append(env.reset())

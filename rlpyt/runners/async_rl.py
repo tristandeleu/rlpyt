@@ -240,14 +240,14 @@ class AsyncRlBase(BaseRunner):
         to one and still get good performance.)
         """
         procs = list()
-        for i in range(len(sample_buffers)):  # (2 for double-buffer.)
+        for i, sample_buffer in enumerate(sample_buffers):  # (2 for double-buffer.)
             ctrl = AttrDict(
                 quit=self.ctrl.quit,
                 sample_ready=self.ctrl.sample_ready[i],
                 sample_copied=self.ctrl.sample_copied[i],
             )
             procs.append(mp.Process(target=memory_copier,
-                args=(sample_buffers[i], self.algo.samples_to_buffer,
+                args=(sample_buffer, self.algo.samples_to_buffer,
                 replay_buffer, ctrl)))
         for p in procs:
             p.start()

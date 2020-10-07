@@ -223,8 +223,7 @@ class ParallelSamplerBase(BaseSampler):
         workers_kwargs = list()
         i_env = 0
         g_env = sum(n_envs_list) * self.rank
-        for rank in range(len(n_envs_list)):
-            n_envs = n_envs_list[rank]
+        for rank, n_envs in enumerate(n_envs_list):
             slice_B = slice(i_env, i_env + n_envs)
             env_ranks = list(range(g_env, g_env + n_envs))
             worker_kwargs = dict(

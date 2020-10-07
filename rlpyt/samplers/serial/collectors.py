@@ -29,7 +29,7 @@ class SerialEvalCollector(BaseEvalCollector):
         self.max_trajectories = max_trajectories
 
     def collect_evaluation(self, itr):
-        traj_infos = [self.TrajInfoCls() for _ in range(len(self.envs))]
+        traj_infos = [self.TrajInfoCls() for _ in self.envs]
         completed_traj_infos = list()
         observations = list()
         for env in self.envs:

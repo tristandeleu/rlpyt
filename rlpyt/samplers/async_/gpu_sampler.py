@@ -103,8 +103,8 @@ class AsyncGpuSamplerBase(AsyncParallelSamplerMixin, ParallelSamplerBase):
         servers_kwargs = list()
         i_env = 0
         i_worker = 0
-        for rank in range(len(affinity)):
-            n_worker = len(affinity[rank]["workers_cpus"])
+        for rank, server_affinity in enumerate(affinity):
+            n_worker = len(server_affinity["workers_cpus"])
             n_env = sum(n_envs_lists[rank])
             slice_B = slice(i_env, i_env + n_env)
             server_kwargs = dict(
@@ -112,7 +112,7 @@ class AsyncGpuSamplerBase(AsyncParallelSamplerMixin, ParallelSamplerBase):
                 env_ranks=list(range(i_env, i_env + n_env)),
                 double_buffer_slice=tuple(buf[:, slice_B]
                     for buf in self.double_buffer),
-                affinity=affinity[rank],
+                affinity=server_affinity,
                 n_envs_list=n_envs_lists[rank],
                 seed=seed + i_worker,
             )

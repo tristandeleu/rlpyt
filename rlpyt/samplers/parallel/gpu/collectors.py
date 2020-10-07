@@ -133,7 +133,7 @@ class GpuEvalCollector(BaseEvalCollector):
 
     def collect_evaluation(self, itr):
         """Param itr unused."""
-        traj_infos = [self.TrajInfoCls() for _ in range(len(self.envs))]
+        traj_infos = [self.TrajInfoCls() for _ in self.envs]
         act_ready, obs_ready = self.sync.act_ready, self.sync.obs_ready
         step = self.step_buffer_np
         for b, env in enumerate(self.envs):
