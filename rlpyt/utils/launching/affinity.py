@@ -1,4 +1,4 @@
-
+from psutil import Process
 from rlpyt.utils.collections import AttrDict
 
 # Readable-to-less-readable abbreviations.
@@ -147,22 +147,24 @@ def prepend_run_slot(run_slot, affinity_code):
     return f"{run_slot}{RUN_SLOT}_" + affinity_code
 
 
-def affinity_from_code(run_slot_affinity_code):
+def affinity_from_code(run_slot_affinity_code, cpus_available):
     """Use in individual experiment script; pass output to Runner."""
     run_slot, aff_code = remove_run_slot(run_slot_affinity_code)
     aff_params = decode_affinity(aff_code)
     if aff_params.get(N_GPU, 0) > 0:
         if aff_params.pop(ASYNC_SAMPLE, 0) > 0:
-            return build_async_affinity(run_slot, **aff_params)
+            return build_async_affinity(run_slot, cpus_available, **aff_params)
         elif aff_params.get(GPU_PER_RUN, 1) > 1:
-            return build_multigpu_affinity(run_slot, **aff_params)
-        return build_gpu_affinity(run_slot, **aff_params)
-    return build_cpu_affinity(run_slot, **aff_params)
+            return build_multigpu_affinity(run_slot, cpus_available, **aff_params)
+        return build_gpu_affinity(run_slot, cpus_available, **aff_params)
+    return build_cpu_affinity(run_slot, cpus_available, **aff_params)
 
 
 def make_affinity(run_slot=0, **kwargs):
     """Input same kwargs as ``encode_affinity()``, returns the AttrDict form."""
-    return affinity_from_code(encode_affinity(run_slot=run_slot, **kwargs))
+    # QKFIX: Build affinity based on available CPUs - Slurm compatibility
+    cpus_available = Process().cpu_affinity()
+    return affinity_from_code(encode_affinity(run_slot=run_slot, **kwargs), cpus_available)
 
 
 # Helpers
@@ -216,7 +218,7 @@ def decode_affinity(affinity_code):
     return aff_kwargs
 
 
-def build_cpu_affinity(slt, cpu, cpr, cpw=1, hto=None, res=0, skt=1, gpu=0,
+def build_cpu_affinity(slt, cpus_available, cpu, cpr, cpw=1, hto=None, res=0, skt=1, gpu=0,
         alt=0, saf=1):
     assert gpu == 0
     assert cpu % cpr == 0
@@ -240,6 +242,7 @@ def build_cpu_affinity(slt, cpu, cpr, cpw=1, hto=None, res=0, skt=1, gpu=0,
             high_core = min_core + cpr // skt_per_slt
             cores.extend(list(range(min_core, high_core)))
         cores = tuple(cores)
+    cores = tuple(cpus_available[core] for core in cores)
     worker_cores = cores[res:]
     assert len(worker_cores) % cpw == 0
     master_cpus = get_master_cpus(cores, hto)
@@ -256,7 +259,7 @@ def build_cpu_affinity(slt, cpu, cpr, cpw=1, hto=None, res=0, skt=1, gpu=0,
     return affinity
 
 
-def build_gpu_affinity(slt, gpu, cpu, cxg=1, cpw=1, hto=None, res=0, skt=1,
+def build_gpu_affinity(slt, cpus_available, gpu, cpu, cxg=1, cpw=1, hto=None, res=0, skt=1,
         alt=0, saf=1):
     """Divides CPUs evenly among GPUs."""
     n_ctx = gpu * cxg
@@ -265,19 +268,19 @@ def build_gpu_affinity(slt, gpu, cpu, cxg=1, cpw=1, hto=None, res=0, skt=1,
     cpr = cpu // n_ctx
     if cxg > 1:
         slt = (slt % gpu) * cxg + slt // gpu  # Spread over GPUs first.
-    affinity = build_cpu_affinity(slt, cpu, cpr,
+    affinity = build_cpu_affinity(slt, cpus_available, cpu, cpr,
         cpw=cpw, hto=hto, res=res, skt=skt, gpu=0, alt=alt, saf=saf)
     affinity["cuda_idx"] = slt // cxg
     return affinity
 
 
-def build_multigpu_affinity(run_slot, gpu, cpu, gpr=1, cpw=1, hto=None, res=0,
+def build_multigpu_affinity(run_slot, cpus_available, gpu, cpu, gpr=1, cpw=1, hto=None, res=0,
         skt=1, alt=0, saf=1):
-    return [build_gpu_affinity(slt, gpu, cpu, cxg=1, cpw=cpw, hto=hto, res=res,
+    return [build_gpu_affinity(slt, cpus_available, gpu, cpu, cxg=1, cpw=cpw, hto=hto, res=res,
         skt=skt, alt=alt, saf=saf) for slt in range(run_slot * gpr, (run_slot + 1) * gpr)]
 
 
-def build_async_affinity(run_slot, gpu, cpu, gpr=1, sgr=0, oss=0, cpw=1,
+def build_async_affinity(run_slot, cpus_available, gpu, cpu, gpr=1, sgr=0, oss=0, cpw=1,
         hto=None, res=1, skt=1, alt=0, saf=1):
     oss = bool(oss)
     sgr = gpr if oss else sgr
@@ -328,6 +331,7 @@ def build_async_affinity(run_slot, gpu, cpu, gpr=1, sgr=0, oss=0, cpw=1,
             gpu_res * res)
         high_opt_core = low_opt_core + res
         opt_cores = tuple(range(low_opt_core, high_opt_core))
+        opt_cores = tuple(cpus_available[core] for core in opt_cores)
         opt_cpus = get_master_cpus(opt_cores, hto)
         opt_affinity = dict(cpus=opt_cpus, cuda_idx=opt_gpu,
             torch_threads=len(opt_cores), set_affinity=bool(saf))
@@ -345,6 +349,7 @@ def build_async_affinity(run_slot, gpu, cpu, gpr=1, sgr=0, oss=0, cpw=1,
             (gpr // skt_per_run) * res + smp_cpu_off * smp_cpg)
         high_smp_core = low_smp_core + smp_cpg
         master_cores = tuple(range(low_smp_core, high_smp_core))
+        master_cores = tuple(cpus_available[core] for core in master_cores)
         master_cpus = get_master_cpus(master_cores, hto)
         workers_cpus = get_workers_cpus(master_cores, cpw, hto, alt)
         smp_affinity = AttrDict(
@@ -371,6 +376,7 @@ def build_async_affinity(run_slot, gpu, cpu, gpr=1, sgr=0, oss=0, cpw=1,
                     (gpr // gpu_per_skt) * res)
                 master_cores += tuple(range(low_smp_core, low_smp_core +
                     smp_cpr // skt_per_run))
+        master_cores = tuple(cpus_available[core] for core in master_cores)
         master_cpus = get_master_cpus(master_cores, hto)
         workers_cpus = get_workers_cpus(master_cores, cpw, hto, alt)
         smp_affinities = AttrDict(
