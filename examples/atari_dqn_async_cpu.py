@@ -17,12 +17,12 @@ def build_and_train(game="pong", run_ID=0):
     # Change these inputs to match local machine and desired parallelism.
     affinity = make_affinity(
         run_slot=0,
-        n_cpu_core=3,  # Use 16 cores across all experiments.
+        n_cpu_core=4,  # Use 16 cores across all experiments.
         n_gpu=1,  # Use 8 gpus across all experiments.
         sample_gpu_per_run=0,
         async_sample=True,
-        # hyperthread_offset=24,  # If machine has 24 cores.
-        # n_socket=2,  # Presume CPU socket affinity to lower/upper half GPUs.
+        hyperthread_offset=0,  # If machine has 24 cores.
+        n_socket=1,  # Presume CPU socket affinity to lower/upper half GPUs.
         # gpu_per_run=2,  # How many GPUs to parallelize one run across.
         # cpu_per_run=1,
     )
@@ -32,7 +32,7 @@ def build_and_train(game="pong", run_ID=0):
         TrajInfoCls=AtariTrajInfo,
         env_kwargs=dict(game=game),
         batch_T=5,
-        batch_B=8,
+        batch_B=9,
         max_decorrelation_steps=100,
         eval_env_kwargs=dict(game=game),
         eval_n_envs=2,
