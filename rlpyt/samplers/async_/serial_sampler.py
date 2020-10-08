@@ -1,14 +1,17 @@
 
 import psutil
 import torch
+from collections import namedtuple
 
 from rlpyt.samplers.base import BaseSampler
 from rlpyt.samplers.async_.base import AsyncSamplerMixin
 from rlpyt.samplers.serial.collectors import SerialEvalCollector
 from rlpyt.samplers.async_.collectors import DbCpuResetCollector
 from rlpyt.utils.logging import logger
-from rlpyt.utils.collections import AttrDict
 
+
+Sync = namedtuple('Sync', 'db_idx')
+Value = namedtuple('Value', 'value')
 
 class AsyncSerialSampler(AsyncSamplerMixin, BaseSampler):
     """Sampler which runs asynchronously in a python process forked from the
@@ -38,7 +41,7 @@ class AsyncSerialSampler(AsyncSamplerMixin, BaseSampler):
         torch.set_num_threads(1)  # Needed to prevent MKL hang :( .
         B = self.batch_spec.B
         envs = [self.EnvCls(**self.env_kwargs) for _ in range(B)]
-        sync = AttrDict(db_idx=AttrDict(value=0))  # Mimic the mp.RawValue format.
+        sync = Sync(db_idx=Value(value=0))  # Mimic the mp.RawValue format.
         collector = self.CollectorCls(
             rank=0,
             envs=envs,

@@ -3,6 +3,7 @@ import torch
 import multiprocessing as mp
 import ctypes
 import psutil
+from collections import namedtuple
 
 from rlpyt.agents.base import AgentInputs
 from rlpyt.samplers.async_.base import AsyncParallelSamplerMixin
@@ -14,8 +15,9 @@ from rlpyt.samplers.async_.action_server import AsyncActionServer
 from rlpyt.samplers.parallel.worker import sampling_process
 from rlpyt.utils.logging import logger
 from rlpyt.utils.seed import make_seed
-from rlpyt.utils.collections import AttrDict
 
+
+Sync = namedtuple('Sync', ['obs_ready', 'act_ready', 'stop_eval', 'db_idx'])
 
 class AsyncGpuSamplerBase(AsyncParallelSamplerMixin, ParallelSamplerBase):
     """Main definitions for asynchronous parallel sampler using GPU(s) for
@@ -175,7 +177,7 @@ class AsyncGpuSamplerBase(AsyncParallelSamplerMixin, ParallelSamplerBase):
         self.n_worker = n_worker = len(n_envs_list)
         # A little slight-of-hand to make 2-level signal:
         self.ctrl.stop_eval = self.sync.stop_eval
-        self.sync = AttrDict(
+        self.sync = Sync(
             obs_ready=[mp.Semaphore(0) for _ in range(n_worker)],
             act_ready=[mp.Semaphore(0) for _ in range(n_worker)],
             stop_eval=mp.RawValue(ctypes.c_bool, False),  # Overwrite.
@@ -224,10 +226,10 @@ class AsyncGpuSamplerBase(AsyncParallelSamplerMixin, ParallelSamplerBase):
         for rank, w_kwargs in enumerate(workers_kwargs):
             n_envs = n_envs_list[rank]
             slice_B = slice(i_env, i_env + n_envs)
-            w_kwargs["sync"] = AttrDict(
-                stop_eval=self.sync.stop_eval,
+            w_kwargs["sync"] = Sync(
                 obs_ready=self.sync.obs_ready[rank],
                 act_ready=self.sync.act_ready[rank],
+                stop_eval=self.sync.stop_eval,
                 db_idx=self.sync.db_idx,
             )
             w_kwargs["step_buffer_np"] = self.step_buffer_np[slice_B]

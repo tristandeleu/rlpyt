@@ -20,8 +20,8 @@ class AtariTrajInfo(TrajInfo):
     """TrajInfo class for use with Atari Env, to store raw game score separate
     from clipped reward signal."""
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self):
+        super().__init__()
         self.GameScore = 0
 
     def step(self, observation, action, reward, done, agent_info, env_info):

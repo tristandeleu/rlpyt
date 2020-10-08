@@ -2,12 +2,14 @@
 import multiprocessing as mp
 import time
 import torch.distributed
+from collections import namedtuple
 
 from rlpyt.runners.minibatch_rl import MinibatchRl, MinibatchRlEval
 from rlpyt.utils.seed import make_seed
-from rlpyt.utils.collections import AttrDict
 from rlpyt.utils.synchronize import drain_queue, find_port
 
+
+Par = namedtuple('Par', ['barrier', 'traj_infos_queue'])
 
 ###############################################################################
 # Master
@@ -102,7 +104,7 @@ class SyncRlMixin:
     def build_par_objs(self, world_size):
         barrier = mp.Barrier(world_size)
         traj_infos_queue = mp.Queue()
-        par = AttrDict(
+        par = Par(
             barrier=barrier,
             traj_infos_queue=traj_infos_queue,
         )

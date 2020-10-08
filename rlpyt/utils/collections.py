@@ -203,28 +203,6 @@ def namedarraytuple_like(namedtuple_or_class, classname_suffix=False):
             f" or class, got {type(ntc)}.")
 
 
-class AttrDict(dict):
-    """
-    Behaves like a dictionary but additionally has attribute-style access
-    for both read and write.
-    e.g. x["key"] and x.key are the same,
-    e.g. can iterate using:  for k, v in x.items().
-    Can sublcass for specific data classes; must call AttrDict's __init__().
-    """
-
-    def __init__(self, *args, **kwargs):
-        dict.__init__(self, *args, **kwargs)
-        self.__dict__ = self
-
-    def copy(self):
-        """
-        Provides a "deep" copy of all unbroken chains of types AttrDict, but
-        shallow copies otherwise, (e.g. numpy arrays are NOT copied).
-        """
-        return type(self)(**{k: v.copy() if isinstance(v, AttrDict) else v
-            for k, v in self.items()})
-
-
 ############################################################################
 # Classes for creating objects which closely follow the interfaces for
 # namedtuple and namedarraytuple types and instances, except without defining

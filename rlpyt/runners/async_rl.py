@@ -3,19 +3,20 @@ import time
 import multiprocessing as mp
 import psutil
 import torch
-from collections import deque
+from collections import deque, namedtuple
 import math
 
 from rlpyt.runners.base import BaseRunner
 from rlpyt.utils.logging import logger
-from rlpyt.utils.collections import AttrDict
 from rlpyt.utils.seed import set_seed, make_seed
 from rlpyt.utils.prog_bar import ProgBarCounter
 from rlpyt.utils.synchronize import drain_queue, find_port
 
 
 THROTTLE_WAIT = 0.05
-
+Ctrl = namedtuple('Ctrl', ['quit', 'quit_opt', 'sample_ready', 'sample_copied',
+                           'sampler_itr', 'opt_throttle', 'eval_time'])
+CtrlMemCopy = namedtuple('CtrlMemCopy', ['quit', 'sample_ready', 'sample_copied'])
 
 class AsyncRlBase(BaseRunner):
     """
@@ -129,7 +130,7 @@ class AsyncRlBase(BaseRunner):
             seed=self.seed,
         )
         self.sampler_batch_size = self.sampler.batch_spec.size
-        self.world_size = len(self.affinity.optimizer)
+        self.world_size = len(self.affinity['optimizer'])
         n_itr = self.get_n_itr()  # Number of sampler iterations.
         replay_buffer = self.algo.async_initialize(
             agent=self.agent,
@@ -149,7 +150,7 @@ class AsyncRlBase(BaseRunner):
         device and initialize data-parallel agent, if applicable.  Computes
         optimizer throttling settings.
         """
-        main_affinity = self.affinity.optimizer[0]
+        main_affinity = self.affinity['optimizer'][0]
         p = psutil.Process()
         if main_affinity.get("set_affinity", True):
             p.cpu_affinity(main_affinity["cpus"])
@@ -191,7 +192,7 @@ class AsyncRlBase(BaseRunner):
         """
         opt_throttle = (mp.Barrier(world_size) if world_size > 1 else
             None)
-        return AttrDict(
+        return Ctrl(
             quit=mp.Value('b', lock=True),
             quit_opt=mp.RawValue('b'),
             sample_ready=[mp.Semaphore(0) for _ in range(2)],  # Double buffer.
@@ -208,9 +209,9 @@ class AsyncRlBase(BaseRunner):
         """
         if self.world_size == 1:
             return
-        offset = self.affinity.optimizer[0].get("master_cpus", [0])[0]
+        affinities = self.affinity['optimizer']
+        offset = affinities[0].get("master_cpus", [0])[0]
         port = find_port(offset=offset)
-        affinities = self.affinity.optimizer
         runners = [AsyncOptWorker(
             rank=rank,
             world_size=self.world_size,
@@ -241,7 +242,7 @@ class AsyncRlBase(BaseRunner):
         """
         procs = list()
         for i, sample_buffer in enumerate(sample_buffers):  # (2 for double-buffer.)
-            ctrl = AttrDict(
+            ctrl = CtrlMemCopy(
                 quit=self.ctrl.quit,
                 sample_ready=self.ctrl.sample_ready[i],
                 sample_copied=self.ctrl.sample_copied[i],
@@ -257,7 +258,7 @@ class AsyncRlBase(BaseRunner):
         target = run_async_sampler
         kwargs = dict(
             sampler=self.sampler,
-            affinity=self.affinity.sampler,
+            affinity=self.affinity['sampler'],
             ctrl=self.ctrl,
             traj_infos_queue=self.traj_infos_queue,
             n_itr=n_itr,

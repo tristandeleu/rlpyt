@@ -1,17 +1,19 @@
 
 import multiprocessing as mp
+from collections import namedtuple
 
 from rlpyt.agents.base import AgentInputs
 from rlpyt.samplers.parallel.base import ParallelSamplerBase
 from rlpyt.samplers.parallel.gpu.action_server import ActionServer
 from rlpyt.samplers.parallel.gpu.collectors import (GpuResetCollector,
     GpuEvalCollector)
-from rlpyt.utils.collections import namedarraytuple, AttrDict
+from rlpyt.utils.collections import namedarraytuple
 from rlpyt.utils.synchronize import drain_queue
 from rlpyt.utils.buffer import buffer_from_example, torchify_buffer
 
 StepBuffer = namedarraytuple("StepBuffer",
     ["observation", "action", "reward", "done", "agent_info"])
+Sync = namedtuple('Sync', ['stop_eval', 'obs_ready', 'act_ready'])
 
 
 class GpuSamplerBase(ParallelSamplerBase):
@@ -112,7 +114,7 @@ class GpuSamplerBase(ParallelSamplerBase):
         for rank, w_kwargs in enumerate(workers_kwargs):
             n_envs = n_envs_list[rank]
             slice_B = slice(i_env, i_env + n_envs)
-            w_kwargs["sync"] = AttrDict(
+            w_kwargs["sync"] = Sync(
                 stop_eval=self.sync.stop_eval,
                 obs_ready=self.sync.obs_ready[rank],
                 act_ready=self.sync.act_ready[rank],

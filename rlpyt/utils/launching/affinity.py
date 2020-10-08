@@ -1,5 +1,4 @@
 from psutil import Process
-from rlpyt.utils.collections import AttrDict
 
 # Readable-to-less-readable abbreviations.
 N_GPU = "gpu"
@@ -161,7 +160,7 @@ def affinity_from_code(run_slot_affinity_code, cpus_available):
 
 
 def make_affinity(run_slot=0, **kwargs):
-    """Input same kwargs as ``encode_affinity()``, returns the AttrDict form."""
+    """Input same kwargs as ``encode_affinity()``, returns the dict form."""
     # QKFIX: Build affinity based on available CPUs - Slurm compatibility
     cpus_available = Process().cpu_affinity()
     return affinity_from_code(encode_affinity(run_slot=run_slot, **kwargs), cpus_available)
@@ -247,7 +246,7 @@ def build_cpu_affinity(slt, cpus_available, cpu, cpr, cpw=1, hto=None, res=0, sk
     assert len(worker_cores) % cpw == 0
     master_cpus = get_master_cpus(cores, hto)
     workers_cpus = get_workers_cpus(worker_cores, cpw, hto, alt)
-    affinity = AttrDict(
+    affinity = dict(
         all_cpus=master_cpus,
         master_cpus=master_cpus,
         workers_cpus=workers_cpus,
@@ -352,7 +351,7 @@ def build_async_affinity(run_slot, cpus_available, gpu, cpu, gpr=1, sgr=0, oss=0
         master_cores = tuple(cpus_available[core] for core in master_cores)
         master_cpus = get_master_cpus(master_cores, hto)
         workers_cpus = get_workers_cpus(master_cores, cpw, hto, alt)
-        smp_affinity = AttrDict(
+        smp_affinity = dict(
             all_cpus=master_cpus,
             master_cpus=master_cpus,
             workers_cpus=workers_cpus,
@@ -379,7 +378,7 @@ def build_async_affinity(run_slot, cpus_available, gpu, cpu, gpr=1, sgr=0, oss=0
         master_cores = tuple(cpus_available[core] for core in master_cores)
         master_cpus = get_master_cpus(master_cores, hto)
         workers_cpus = get_workers_cpus(master_cores, cpw, hto, alt)
-        smp_affinities = AttrDict(
+        smp_affinities = dict(
             all_cpus=master_cpus,
             master_cpus=master_cpus,
             workers_cpus=workers_cpus,
@@ -390,7 +389,7 @@ def build_async_affinity(run_slot, cpus_available, gpu, cpu, gpr=1, sgr=0, oss=0
             set_affinity=bool(saf),
         )
         all_cpus += master_cpus
-    affinity = AttrDict(
+    affinity = dict(
         all_cpus=all_cpus,  # For exp launcher to use taskset.
         optimizer=opt_affinities,
         sampler=smp_affinities,
@@ -429,63 +428,3 @@ def get_workers_cpus(cores, cpw, hto, alt):
     elif alt:
         cpus += cpus
     return cpus
-
-
-def build_affinities_gpu_1cpu_drive(slt, gpu, cpu, cxg=1, gpr=1, cpw=1,
-        hto=None, skt=1):
-    """OLD.
-    Divides CPUs evenly among GPUs, with one CPU held open for each GPU, to
-    drive it.  Workers assigned on the remaining CPUs.  Master permitted to use
-    driver core + worker cores (good in case of multi-context per GPU and old
-    alternating action server sampler, from accel_rl). GPU-driving CPUs grouped
-    at the lowest numbered cores of each CPU socket.
-    """
-    if gpr > 1:
-        raise NotImplementedError  # (parallel training)
-    n_ctx = gpu * cxg
-    n_run_slots = n_ctx // gpr
-    assert slt < n_run_slots
-    cpu_per_gpu = cpu // gpu
-    sim_cpu_per_gpu = cpu_per_gpu - 1
-    n_sim_cpu = cpu - gpu
-    sim_cpu_per_ctx = n_sim_cpu // n_ctx
-
-    assert gpu >= skt
-    assert gpu % skt == 0
-    gpu_per_skt = gpu // skt
-    assert cpu % skt == 0
-    cpu_per_skt = cpu // skt
-
-    my_ctx = slt  # Different for multi-context run, not implemented.
-    my_gpu = my_ctx // cxg
-    my_skt = my_gpu // gpu_per_skt
-    gpu_in_skt = my_gpu % gpu_per_skt
-    gpu_core = gpu_in_skt + my_skt * cpu_per_skt
-    ctx_in_gpu = my_ctx % cxg
-
-    min_sim_core = (my_skt * cpu_per_skt + gpu_per_skt +
-        gpu_in_skt * sim_cpu_per_gpu + ctx_in_gpu * sim_cpu_per_ctx)
-    sim_cores = tuple(range(min_sim_core, min_sim_core + sim_cpu_per_ctx))
-
-    assert len(sim_cores) % cpw == 0
-    if hto is None:
-        hto = cpu
-    if hto > 0:
-        hyperthreads = tuple(c + hto for c in sim_cores)
-        workers_cpus = tuple(sim_cores[i:i + cpw] + hyperthreads[i:i + cpw]
-            for i in range(0, len(sim_cores), cpw))
-        master_cpus = (gpu_core,) + sim_cores + (gpu_core + hto,) + hyperthreads
-    else:
-        workers_cpus = tuple(sim_cores[i:i + cpw]
-            for i in range(0, len(sim_cores), cpw))
-        master_cpus = (gpu_core,) + sim_cores
-
-    affinity = AttrDict(
-        all_cpus=master_cpus,
-        master_cpus=master_cpus,
-        workers_cpus=workers_cpus,
-        master_torch_threads=1,
-        worker_torch_threads=cpw,
-        cuda_idx=my_gpu,
-    )
-    return affinity

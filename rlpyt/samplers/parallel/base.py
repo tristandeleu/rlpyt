@@ -1,17 +1,19 @@
-
 import multiprocessing as mp
 import ctypes
 import time
+from collections import namedtuple
 
 from rlpyt.samplers.base import BaseSampler
 from rlpyt.samplers.buffer import build_samples_buffer
 from rlpyt.samplers.parallel.worker import sampling_process
 from rlpyt.utils.logging import logger
-from rlpyt.utils.collections import AttrDict
 from rlpyt.utils.synchronize import drain_queue
 
 
 EVAL_TRAJ_CHECK = 0.1  # seconds.
+Ctrl = namedtuple('Ctrl', ['quit', 'barrier_in', 'barrier_out',
+                           'do_eval', 'itr'])
+Sync = namedtuple('Sync', 'stop_eval')
 
 
 class ParallelSamplerBase(BaseSampler):
@@ -183,7 +185,7 @@ class ParallelSamplerBase(BaseSampler):
         return examples
 
     def _build_parallel_ctrl(self, n_worker):
-        self.ctrl = AttrDict(
+        self.ctrl = Ctrl(
             quit=mp.RawValue(ctypes.c_bool, False),
             barrier_in=mp.Barrier(n_worker + 1),
             barrier_out=mp.Barrier(n_worker + 1),
@@ -192,7 +194,7 @@ class ParallelSamplerBase(BaseSampler):
         )
         self.traj_infos_queue = mp.Queue()
         self.eval_traj_infos_queue = mp.Queue()
-        self.sync = AttrDict(stop_eval=mp.RawValue(ctypes.c_bool, False))
+        self.sync = Sync(stop_eval=mp.RawValue(ctypes.c_bool, False))
 
     def _assemble_common_kwargs(self, affinity, global_B=1):
         common_kwargs = dict(
